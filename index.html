@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logdex | Run Your Entire Coaching Workflow</title>
+    
+    <!-- Inject Google Fonts for Prototype (Handwritten & Clean Sans-Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            500: '#3b82f6',
+                            600: '#0066cc',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    transitionTimingFunction: {
+                        'apple': 'cubic-bezier(0.16, 1, 0.3, 1)',
+                    },
+                    animation: {
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'float-delay': 'float 6s ease-in-out 3s infinite',
+                        'progress': 'progressFill 5s linear forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        progressFill: {
+                            '0%': { width: '0%' },
+                            '100%': { width: '100%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Force load Google Fonts via CSSOM to bypass iframe/canvas <head> stripping */
+        @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Inter:wght@400;500;600&display=swap');
+
+        /* Typography adjustments */
+        body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+        
+        /* Language Toggle Logic - Core i18n Engine */
+        html:not([lang="en"]) [data-lang="en"] { display: none !important; }
+        html:not([lang="zh"]) [data-lang="zh"] { display: none !important; }
+        
+        /* Scroll Reveal Utility Classes */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 150ms; }
+        .reveal-delay-2 { transition-delay: 300ms; }
+
+        /* Bento Grid Reveal Classes */
+        .reveal-card {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-card.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- AI PROTOTYPE SCOPED CSS --- */
+        :root {
+            /* Logdex App Color System (Dark) */
+            --bg-base: #000000;
+            --bg-card: #121212;
+            --bg-card-hover: #1c1c1e;
+            --primary-blue: #1D64FF;
+            --accent-blue: #639BFF;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B3B3B8;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --glow-primary: rgba(29, 100, 255, 0.4);
+            
+            /* Annotation Theme System */
+            --ink-charcoal: #EDEDED;
+            --ink-rose: #D88CA1;
+            
+            /* Typography */
+            --font-app: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+            --font-script: 'Permanent Marker', cursive;
+            --font-sans: 'Inter', sans-serif;
+            
+            /* Spacing & Radius */
+            --radius-card: 20px;
+            --radius-pill: 9999px;
+            --spacing-outer: 20px;
+            --spacing-section: 24px;
+            --spacing-card: 12px;
+            
+            /* Easing */
+            --ease-ios: cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .presentation-stage {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            background-color: #1a1a1a;
+            border-radius: 24px;
+            padding: 60px 80px;
+            color: var(--text-primary);
+            font-family: var(--font-app);
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .presentation-stage * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- ANNOTATION HUB (Left Side) --- */
+        .annotation-hub {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .annotation-group {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .annotation-group.active { opacity: 1; }
+
+        .anno-text {
+            position: absolute;
+            max-width: 220px;
+        }
+        
+        .anno-title {
+            font-family: "Permanent Marker", cursive !important;
+            font-weight: 400 !important; 
+            font-style: normal !important; /* Critical fix: Prevent any inherited italics from breaking the single-variant font */
+            color: var(--primary-blue);
+            font-size: 32px;
+            line-height: 1.1;
+            margin-bottom: 6px;
+            transform: rotate(-2deg);
+        }
+
+        .anno-body {
+            font-family: var(--font-sans);
+            color: var(--ink-charcoal);
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .anno-arrow {
+            position: absolute;
+            overflow: visible;
+        }
+        
+        .anno-arrow path {
+            fill: none;
+            stroke: var(--ink-charcoal);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0.5px 0.5px 0px rgba(0,0,0,0.1));
+        }
+
+        #anno-1 .anno-text { top: 15%; left: 20px; }
+        #anno-1 .anno-arrow { top: calc(15% + 90px); left: 190px; width: 130px; height: 100px; }
+        #anno-2 .anno-text { top: 60%; left: 20px; }
+        #anno-2 .anno-arrow { top: calc(60% + 90px); left: 190px; width: 130px; height: 120px; }
+        #anno-3 .anno-text { top: 30%; left: 20px; }
+        #anno-3 .anno-arrow { top: calc(30% + 90px); left: 190px; width: 130px; height: 80px; }
+        #anno-4 .anno-text { top: 70%; left: 20px; }
+        #anno-4 .anno-arrow { top: calc(70% + 90px); left: 190px; width: 130px; height: 100px; }
+
+        @media (max-width: 900px) {
+            .presentation-stage { flex-direction: column; padding: 40px 20px; }
+            .annotation-hub { width: 100%; height: 150px; }
+            .anno-text { position: relative !important; top: 0 !important; left: 0 !important; text-align: center; max-width: 100%; margin: 0 auto; }
+            .anno-arrow { display: none; }
+        }
+
+        /* --- APP WRAPPER (Device + Nav) --- */
+        #prototype-app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .device-wrapper {
+            position: relative;
+            width: 336px; /* Scaled 80% from 420px to maintain ratio and minimize */
+            height: 699px; /* Scaled 80% from 874px to maintain ratio and minimize */
+            border-radius: 50px;
+            padding: 14px;
+            background: #1a1a1a;
+            box-shadow: 
+                inset 0 0 4px 2px rgba(255,255,255,0.2),
+                inset 0 0 0 6px #444,
+                0 0 0 1px #222,
+                0 30px 60px rgba(0,0,0,0.6);
+        }
+
+        @media (max-width: 450px) {
+            #prototype-app { gap: 20px; width: 100%; height: auto; }
+            .device-wrapper { width: 100%; max-width: 300px; height: 624px; border-radius: 45px; } /* Proportional scale for mobile (300 * (874/420) = 624px) */
+        }
+
+        .screen-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-base);
+            border-radius: 40px;
+            overflow: hidden;
+            display: flex;
+            mask-image: -webkit-radial-gradient(white, black);
+        }
+
+        .dynamic-island {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 35px;
+            background: #000;
+            border-radius: 20px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+        }
+        
+        .camera-dot { width: 12px; height: 12px; border-radius: 50%; background: #111; box-shadow: inset 0px 0px 4px rgba(255,255,255,0.1); }
+
+        /* --- SCREENS --- */
+        .slider-track { position: relative; width: 100%; height: 100%; }
+        .prototype-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 70px var(--spacing-outer) 30px; overflow-y: auto; overflow-x: hidden;
+            display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease-in-out;
+        }
+        .prototype-screen.active { opacity: 1; pointer-events: auto; }
+        .prototype-screen::-webkit-scrollbar { display: none; }
+        .prototype-screen { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- GLOBAL UI COMPONENTS --- */
+        .presentation-stage h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.5px; line-height: 1.2; }
+        .presentation-stage p.subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: var(--spacing-section); }
+        
+        .prototype-card {
+            background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card);
+            padding: 16px; margin-bottom: var(--spacing-card); transition: transform 0.2s var(--ease-ios), background 0.2s;
+        }
+
+        .prototype-btn-primary {
+            background: var(--primary-blue); color: white; border: none; border-radius: var(--radius-pill);
+            padding: 16px 24px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer;
+            margin-top: auto; transition: all 0.2s; display: flex; justify-content: center; align-items: center;
+            gap: 8px; box-shadow: 0 4px 20px rgba(29, 100, 255, 0.3);
+        }
+        .prototype-btn-primary:active { transform: scale(0.97); }
+        
+        .prototype-chip {
+            background: rgba(255,255,255,0.1); color: var(--text-secondary); font-size: 12px;
+            padding: 4px 10px; border-radius: 8px; display: inline-block;
+        }
+
+        .header-action {
+            position: absolute; top: 60px; right: 20px; background: none; border: none;
+            color: var(--accent-blue); font-size: 16px; font-weight: 500; cursor: pointer;
+        }
+
+        /* --- SCREEN 1: NATURAL INPUT --- */
+        .input-area { flex: 1; display: flex; flex-direction: column; }
+        .textarea-container {
+            position: relative; flex: 1; margin-bottom: 20px; background: var(--bg-card);
+            border-radius: var(--radius-card); border: 1px solid var(--border-subtle); padding: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .textarea-container:focus-within { border-color: var(--primary-blue); box-shadow: 0 0 0 4px rgba(29, 100, 255, 0.15); }
+        .textarea-container textarea { width: 100%; height: 100%; background: transparent; border: none; color: var(--text-primary); font-family: var(--font-app); font-size: 18px; line-height: 1.5; resize: none; outline: none; }
+        .textarea-container textarea::placeholder { color: #555; }
+
+        /* --- SCREEN 2: AI OUTPUT --- */
+        .shimmer { background: linear-gradient(90deg, #121212 25%, #222 50%, #121212 75%); background-size: 200% 100%; animation: loadingShimmer 1.5s infinite linear; border-radius: 8px; }
+        @keyframes loadingShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        #aiLoadingState { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+        .skeleton-title { height: 24px; width: 40%; }
+        .skeleton-card { height: 100px; width: 100%; border-radius: var(--radius-card); }
+        #aiContentState { display: none; opacity: 0; transition: opacity 0.6s ease; }
+        .section-title { font-size: 18px; font-weight: 600; margin: 24px 0 12px 0; color: var(--accent-blue); }
+        .exercise-item { display: flex; justify-content: space-between; align-items: center; }
+        .ex-details h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; line-height: 1.2;}
+        .ex-details p { font-size: 14px; color: var(--text-secondary); margin: 0;}
+
+        /* --- SCREEN 3: EDIT PLAN --- */
+        .draggable-list { display: flex; flex-direction: column; gap: 12px; }
+        .draggable-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 16px; display: flex; align-items: center; gap: 12px; cursor: grab; transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; }
+        .draggable-card:active { cursor: grabbing; transform: scale(0.98); }
+        .draggable-card.dragging { opacity: 0.5; border-color: var(--primary-blue); }
+        .drag-handle { color: #555; cursor: grab; padding: 4px; }
+        .drag-handle svg { width: 20px; height: 20px; fill: currentColor; }
+        .edit-fields { display: flex; gap: 8px; margin-top: 8px; }
+        .edit-input { background: rgba(255,255,255,0.05); border: 1px solid transparent; color: white; border-radius: 6px; padding: 4px 8px; font-size: 14px; width: 60px; text-align: center; }
+        .edit-input:focus { outline: none; border-color: var(--accent-blue); }
+
+        /* --- SCREEN 4: SEND --- */
+        .summary-card { text-align: center; padding: 40px 20px; background: linear-gradient(180deg, #121212 0%, #000 100%); border-radius: 24px; border: 1px solid var(--border-subtle); margin-bottom: 30px;}
+        .summary-icon { width: 64px; height: 64px; background: var(--primary-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 30px var(--glow-primary); }
+        .summary-icon svg { width: 32px; height: 32px; fill: white; }
+        .summary-stats { display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 20px; }
+        .stat { display: flex; flex-direction: column; gap: 4px; }
+        .stat-val { font-size: 20px; font-weight: 600; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); }
+
+        /* Success Overlay */
+        .success-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-base); z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .success-overlay.active { opacity: 1; pointer-events: auto; }
+        .check-circle { width: 80px; height: 80px; border-radius: 50%; background: #28a745; display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform 0.5s var(--ease-ios) 0.2s; }
+        .success-overlay.active .check-circle { transform: scale(1); box-shadow: 0 0 50px rgba(40, 167, 69, 0.4); }
+        .check-circle svg { width: 40px; height: 40px; fill: white; }
+
+        /* --- EXTERNAL NAVIGATION --- */
+        .external-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: auto; }
+        .nav-pill { background: #1a1a1a; border: 1px solid var(--border-subtle); padding: 12px 20px; border-radius: var(--radius-pill); display: flex; gap: 12px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .nav-dot { position: relative; width: 8px; height: 8px; border-radius: var(--radius-pill); background: #555; border: none; cursor: pointer; transition: all 0.3s var(--ease-ios); padding: 0; overflow: hidden; }
+        .nav-dot.active { width: 32px; background: rgba(255, 255, 255, 0.15); }
+        .nav-dot::after { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: #FFFFFF; border-radius: var(--radius-pill); }
+        .external-nav.is-paused .nav-dot.active::after { width: 100%; transition: width 0.3s ease; }
+        .external-nav.is-playing .nav-dot.active::after { 
+            animation-name: progress-fill;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            animation-duration: var(--play-duration, 3000ms);
+        }
+        
+        @keyframes progress-fill {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        .external-nav.is-playing.is-hover-paused .nav-dot.active::after { animation-play-state: paused; }
+        .nav-dot:hover:not(.active) { background: #888; }
+        .pause-btn { width: 44px; height: 44px; border-radius: 50%; background: #1a1a1a; border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #FFFFFF; transition: all 0.2s var(--ease-ios); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .pause-btn:active { transform: scale(0.9); }
+    </style>
+</head>
+<body class="bg-white text-slate-900 overflow-x-hidden">
+
+    <!-- Sticky Navigation -->
+    <nav class="fixed w-full z-50 top-0 transition-all duration-300 backdrop-blur-md bg-white/70 border-b border-slate-200/50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="text-xl font-bold tracking-tight text-slate-900">Logdex.</div>
+            
+            <div class="flex items-center gap-6">
+                <!-- Language Switcher -->
+                <button id="lang-toggle" class="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                    <span data-lang="en">中文</span>
+                    <span data-lang="zh">English</span>
+                </button>
+                
+                <button class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-full text-sm font-medium transition-all transform hover:scale-105 btn-cta">
+                    <span data-lang="en">Try Logdex</span>
+                    <span data-lang="zh">免費試用</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SECTION 1: Methodology (Hero) -->
+    <section class="relative pt-40 pb-32 px-6 flex flex-col items-center justify-center min-h-[90vh] overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50 via-white to-white -z-10"></div>
+        
+        <div class="max-w-4xl mx-auto text-center reveal">
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight mb-6">
+                <span data-lang="en">Everything Works Better<br><span class="text-slate-400">When It Works Together</span></span>
+                <span data-lang="zh">當一切協同運作時<br><span class="text-slate-400">效果才會真正提升</span></span>
+            </h1>
+            
+            <div class="max-w-2xl mx-auto mt-8 reveal reveal-delay-1">
+                <p class="text-lg md:text-xl text-slate-500 mb-4 leading-relaxed font-medium">
+                    <span data-lang="en">Coaching becomes easier when your tools stop working separately—and start working together. Logdex brings your entire workflow into one place, so you can focus on what actually matters: your clients.</span>
+                    <span data-lang="zh">當工具不再各自為政，而是彼此協同運作時，教學才會真正變得輕鬆。Logdex 將你的整個教學流程整合在一起，讓你專注於真正重要的事：你的客人。</span>
+                </p>
+            </div>
+            
+            <div class="mt-12 reveal reveal-delay-2">
+                <button class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-4 rounded-full text-lg font-semibold shadow-xl shadow-brand-500/30 transition-all transform hover:-translate-y-1 btn-cta">
+                    <span data-lang="en">Try Logdex Free</span>
+                    <span data-lang="zh">免費試用 Logdex</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hero Visual: Abstract UI Elements merging -->
+        <div class="relative w-full max-w-5xl h-96 mt-24 reveal">
+            <!-- Center Logdex UI -->
+            <div class="absolute inset-0 m-auto w-[340px] h-[220px] bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 flex flex-col p-4">
+                <div class="h-4 w-24 bg-slate-200 rounded mb-4"></div>
+                <div class="flex-1 flex gap-3">
+                    <div class="w-1/3 bg-brand-50 rounded-lg"></div>
+                    <div class="w-2/3 bg-slate-50 rounded-lg flex flex-col p-2 gap-2">
+                        <div class="h-3 w-full bg-slate-200 rounded"></div>
+                        <div class="h-3 w-3/4 bg-slate-200 rounded"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Floating Elements (Chaos) -->
+            <div class="absolute top-10 left-10 md:left-40 w-40 h-32 bg-green-50 rounded-xl shadow-lg border border-green-100 p-3 transform -rotate-6 animate-float-slow opacity-70">
+                <div class="text-green-600 text-xs font-bold mb-2">
+                    <span data-lang="en">Spreadsheet</span>
+                    <span data-lang="zh">試算表</span>
+                </div>
+                <div class="h-2 w-full bg-green-200 rounded mb-1"></div><div class="h-2 w-5/6 bg-green-200 rounded"></div>
+            </div>
+            <div class="absolute bottom-10 left-20 md:left-60 w-32 h-24 bg-yellow-50 rounded-xl shadow-lg border border-yellow-100 p-3 transform rotate-3 animate-float-delay opacity-70">
+                <div class="text-yellow-600 text-xs font-bold mb-2">
+                    <span data-lang="en">Notes</span>
+                    <span data-lang="zh">備忘錄</span>
+                </div>
+            </div>
+            <div class="absolute top-20 right-10 md:right-40 w-36 h-40 bg-green-100 rounded-xl shadow-lg border border-green-200 p-3 transform rotate-6 animate-float-slow opacity-70">
+                <div class="text-emerald-700 text-xs font-bold mb-2">WhatsApp</div>
+                <div class="w-full h-6 bg-white rounded-full mb-2"></div><div class="w-3/4 h-6 bg-emerald-200 rounded-full ml-auto"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 2: Decision (Product Overview - Refactored to Vertical Stack for Bento Grid) -->
+    <section class="py-32 bg-slate-50 px-6 overflow-hidden">
+        <div class="max-w-7xl mx-auto flex flex-col items-center gap-16">
+            
+            <!-- Section Header -->
+            <div class="w-full max-w-3xl mx-auto text-center reveal">
+                <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                    <span data-lang="en">One Place to Run Your Entire Coaching Workflow</span>
+                    <span data-lang="zh">一個平台，完成整個教學流程</span>
+                </h2>
+                <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+                    <span data-lang="en">From planning to communication to progress tracking—Logdex connects everything, so nothing gets lost and everything moves forward.</span>
+                    <span data-lang="zh">從計劃、溝通到進度追蹤，Logdex 將一切連結，讓資訊不再流失，流程持續前進。</span>
+                </p>
+                <a href="#" class="text-brand-600 font-semibold text-lg hover:text-brand-500 flex items-center justify-center gap-2 transition-colors">
+                    <span data-lang="en">Explore the workspace</span>
+                    <span data-lang="zh">探索工作區</span>
+                    <span class="text-xl">→</span>
+                </a>
+            </div>
+            
+            <!-- Bento Grid: 4 Columns, Auto Rows -->
+            <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-[minmax(280px,auto)]">
+                
+                <!-- CENTER: Hero Card (2x2) -->
+                <div class="reveal-card group md:col-span-2 lg:col-span-2 lg:row-span-2 lg:col-start-2 lg:row-start-2 flex flex-col items-center bg-white rounded-[2rem] sm:rounded-[2.5rem] p-8 sm:p-12 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <div class="z-10 text-center mb-10 w-full">
+                        <h3 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 mb-3">
+                            <span data-lang="en">Your Client, In One Place</span>
+                            <span data-lang="zh">你的學生，一目了然</span>
+                        </h3>
+                        <p class="text-gray-500 text-base sm:text-lg max-w-md mx-auto text-balance">
+                            <span data-lang="en">The ultimate 360° view. Programs, notes, history, and metrics—all instantly accessible from the central client profile.</span>
+                            <span data-lang="zh">全方位的 360° 視角。課表、筆記、歷史記錄與指標，全部皆可從客戶檔案即時存取。</span>
+                        </p>
+                    </div>
+                    <div class="flex-1 w-full flex justify-center items-center relative z-0 mt-auto">
+                        <svg width="400" height="250" viewBox="0 0 400 250" fill="none" xmlns="http://www.w3.org/2000/svg" class="group-hover:scale-105 transition-transform duration-500 ease-apple w-full max-w-md h-auto">
+                            <rect x="20" y="20" width="360" height="210" rx="16" fill="white" stroke="#E5E5EA" stroke-width="2"/>
+                            <rect x="40" y="40" width="80" height="170" rx="8" fill="#F5F5F7"/>
+                            <circle cx="80" cy="80" r="24" fill="#E5E5EA"/>
+                            <rect x="55" y="120" width="50" height="6" rx="3" fill="#E5E5EA"/>
+                            <rect x="55" y="136" width="40" height="6" rx="3" fill="#E5E5EA"/>
+                            <rect x="140" y="40" width="220" height="60" rx="8" fill="#F0F8FF"/>
+                            <rect x="140" y="116" width="100" height="94" rx="8" fill="#F5F5F7"/>
+                            <rect x="260" y="116" width="100" height="94" rx="8" fill="#F5F5F7"/>
+                        </svg>
+                    </div>
+                    <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-gradient-to-tr from-gray-100 to-transparent rounded-full opacity-50 pointer-events-none"></div>
+                </div>
+
+                <!-- TOP LEFT: Feature Card (2x1) -->
+                <div class="reveal-card group md:col-span-2 lg:col-span-2 lg:row-span-1 lg:col-start-1 lg:row-start-1 flex flex-col md:flex-row bg-gradient-to-br from-blue-50/50 to-blue-100/30 bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <div class="md:w-1/2 relative z-10">
+                        <h3 class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-2">
+                            <span data-lang="en">Plan with Structure</span>
+                            <span data-lang="zh">結構化訓練計劃</span>
+                        </h3>
+                        <p class="text-gray-500 text-sm sm:text-base text-balance">
+                            <span data-lang="en">Build scalable, flexible coaching programs effortlessly.</span>
+                            <span data-lang="zh">毫不費力地建立具擴展性、高彈性的教學課表。</span>
+                        </p>
+                    </div>
+                    <div class="md:w-1/2 flex justify-end items-end absolute bottom-0 right-0 translate-y-[20%] translate-x-[10%] md:translate-y-[15%] md:translate-x-[5%] group-hover:-translate-y-2 transition-transform duration-500 ease-apple z-0 w-48 sm:w-64">
+                        <svg class="w-full h-auto drop-shadow-2xl" viewBox="0 0 200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="196" height="396" rx="34" fill="#ffffff" stroke="#E5E5EA" stroke-width="4"/>
+                            <rect x="8" y="8" width="184" height="384" rx="28" fill="#F9FAFB"/>
+                            <rect x="65" y="16" width="70" height="20" fill="#000000" rx="10"/>
+                            <rect x="24" y="60" width="100" height="14" rx="4" fill="#1D1D1F"/>
+                            <rect x="24" y="90" width="152" height="48" rx="12" fill="#ffffff" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.02))"/>
+                            <circle cx="44" cy="114" r="8" fill="#E0F2FE"/>
+                            <rect x="64" y="106" width="80" height="6" rx="3" fill="#94A3B8"/>
+                            <rect x="64" y="118" width="50" height="4" rx="2" fill="#CBD5E1"/>
+                            <rect x="24" y="150" width="152" height="48" rx="12" fill="#ffffff" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.02))"/>
+                            <circle cx="44" cy="174" r="8" fill="#E0F2FE"/>
+                            <rect x="64" y="166" width="60" height="6" rx="3" fill="#94A3B8"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- TOP RIGHT: Feature Card (2x1) -->
+                <div class="reveal-card group md:col-span-2 lg:col-span-2 lg:row-span-1 lg:col-start-3 lg:row-start-1 flex flex-col md:flex-row bg-gradient-to-br from-green-50/50 to-green-100/30 bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <div class="md:w-1/2 relative z-10">
+                        <h3 class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-2">
+                            <span data-lang="en">Stay Connected</span>
+                            <span data-lang="zh">保持緊密聯繫</span>
+                        </h3>
+                        <p class="text-gray-500 text-sm sm:text-base text-balance">
+                            <span data-lang="en">Real-time messaging perfectly integrated with your plans.</span>
+                            <span data-lang="zh">即時通訊功能，與您的訓練計劃完美整合。</span>
+                        </p>
+                    </div>
+                    <div class="md:w-1/2 flex justify-end items-end absolute bottom-0 right-0 translate-y-[20%] translate-x-[10%] md:translate-y-[15%] md:translate-x-[5%] group-hover:-translate-y-2 transition-transform duration-500 ease-apple z-0 w-48 sm:w-64">
+                        <svg class="w-full h-auto drop-shadow-2xl" viewBox="0 0 200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="196" height="396" rx="34" fill="#ffffff" stroke="#E5E5EA" stroke-width="4"/>
+                            <rect x="8" y="8" width="184" height="384" rx="28" fill="#F9FAFB"/>
+                            <rect x="65" y="16" width="70" height="20" fill="#000000" rx="10"/>
+                            <rect x="24" y="80" width="110" height="36" rx="12" fill="#E5E5EA"/>
+                            <rect x="36" y="96" width="80" height="4" rx="2" fill="#9CA3AF"/>
+                            <rect x="66" y="130" width="110" height="50" rx="12" fill="#22C55E"/>
+                            <rect x="78" y="146" width="80" height="4" rx="2" fill="#ffffff"/>
+                            <rect x="78" y="158" width="50" height="4" rx="2" fill="#ffffff"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- BOTTOM LEFT: Feature Card (2x1) -->
+                <div class="reveal-card group md:col-span-2 lg:col-span-2 lg:row-span-1 lg:col-start-1 lg:row-start-4 flex flex-col md:flex-row bg-gradient-to-br from-purple-50/50 to-purple-100/30 bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <div class="md:w-[55%] relative z-10">
+                        <h3 class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-2">
+                            <span data-lang="en">Track What Matters</span>
+                            <span data-lang="zh">追蹤核心數據</span>
+                        </h3>
+                        <p class="text-gray-500 text-sm sm:text-base text-balance">
+                            <span data-lang="en">Visualized analytics to keep your clients motivated.</span>
+                            <span data-lang="zh">視覺化的數據分析，時刻保持學生的動力。</span>
+                        </p>
+                    </div>
+                    <div class="md:w-[45%] flex justify-end items-end absolute bottom-0 right-0 translate-y-[20%] translate-x-[10%] md:translate-y-[15%] md:translate-x-[5%] group-hover:-translate-y-2 transition-transform duration-500 ease-apple z-0 w-48 sm:w-64">
+                        <svg class="w-full h-auto drop-shadow-2xl" viewBox="0 0 200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="196" height="396" rx="34" fill="#ffffff" stroke="#E5E5EA" stroke-width="4"/>
+                            <rect x="8" y="8" width="184" height="384" rx="28" fill="#F9FAFB"/>
+                            <rect x="65" y="16" width="70" height="20" fill="#000000" rx="10"/>
+                            <rect x="24" y="80" width="152" height="160" rx="16" fill="#ffffff" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.04))"/>
+                            <rect x="40" y="180" width="16" height="40" rx="4" fill="#E9D5FF"/>
+                            <rect x="64" y="150" width="16" height="70" rx="4" fill="#E9D5FF"/>
+                            <rect x="88" y="120" width="16" height="100" rx="4" fill="#A855F7"/>
+                            <rect x="112" y="160" width="16" height="60" rx="4" fill="#E9D5FF"/>
+                            <rect x="136" y="100" width="16" height="120" rx="4" fill="#A855F7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- MIDDLE LEFT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-1 lg:row-start-2 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Build Faster</span>
+                        <span data-lang="zh">建立更快速</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">Workout Builder with drag-and-drop mechanics.</span>
+                        <span data-lang="zh">支援拖曳操作的課表建立工具。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="120" height="80" viewBox="0 0 120 80" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <rect x="0" y="0" width="120" height="20" rx="6" fill="#E5E5EA"/>
+                            <rect x="0" y="30" width="120" height="20" rx="6" fill="#1D1D1F"/>
+                            <rect x="0" y="60" width="120" height="20" rx="6" fill="#E5E5EA"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- MIDDLE RIGHT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-4 lg:row-start-2 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Smart Suggestions</span>
+                        <span data-lang="zh">智能建議</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">AI Feedback analyzes client check-ins instantly.</span>
+                        <span data-lang="zh">AI 即時分析學生的進度回報。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="80" height="80" viewBox="0 0 80 80" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <circle cx="40" cy="40" r="40" fill="#F3E8FF"/>
+                            <path d="M40 20L44.5 35.5L60 40L44.5 44.5L40 60L35.5 44.5L20 40L35.5 35.5L40 20Z" fill="#A855F7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- BOTTOM-MID LEFT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-1 lg:row-start-3 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Deep Insights</span>
+                        <span data-lang="zh">深度洞察</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">Analytics that uncover engagement trends.</span>
+                        <span data-lang="zh">發掘學生互動趨勢的數據分析。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="120" height="80" viewBox="0 0 120 80" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <path d="M10 70 L 40 40 L 70 50 L 110 20" fill="none" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="110" cy="20" r="6" fill="#3B82F6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- BOTTOM-MID RIGHT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-4 lg:row-start-3 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Keep Context</span>
+                        <span data-lang="zh">保留完整脈絡</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">Rich Notes linked directly to client profiles.</span>
+                        <span data-lang="zh">直接連結到客戶檔案的詳細筆記。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="100" height="100" viewBox="0 0 100 100" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <rect x="15" y="10" width="70" height="80" rx="8" fill="#FEF3C7" stroke="#FDE68A" stroke-width="2"/>
+                            <rect x="30" y="30" width="40" height="4" rx="2" fill="#D97706"/>
+                            <rect x="30" y="45" width="30" height="4" rx="2" fill="#D97706"/>
+                            <rect x="30" y="60" width="35" height="4" rx="2" fill="#D97706"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- BOTTOM CENTER-LEFT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-3 lg:row-start-4 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Rich Communication</span>
+                        <span data-lang="zh">豐富溝通方式</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">Share form videos and media files seamlessly.</span>
+                        <span data-lang="zh">無縫分享動作影片及多媒體檔案。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="120" height="80" viewBox="0 0 120 80" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <rect x="10" y="10" width="100" height="60" rx="12" fill="#E0F2FE"/>
+                            <circle cx="60" cy="40" r="16" fill="#0284C7"/>
+                            <path d="M57 34L66 40L57 46V34Z" fill="white"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- BOTTOM CENTER-RIGHT: Detail Card (1x1) -->
+                <div class="reveal-card group lg:col-span-1 lg:col-start-4 lg:row-start-4 flex flex-col bg-white rounded-[2rem] p-8 ring-1 ring-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 ease-apple overflow-hidden relative">
+                    <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-1">
+                        <span data-lang="en">Track Over Time</span>
+                        <span data-lang="zh">長期追蹤</span>
+                    </h3>
+                    <p class="text-gray-500 text-sm text-balance">
+                        <span data-lang="en">Detailed History of every workout and check-in.</span>
+                        <span data-lang="zh">每次訓練與進度回報的詳細歷史記錄。</span>
+                    </p>
+                    <div class="flex-1 flex justify-center items-center mt-6">
+                        <svg width="80" height="80" viewBox="0 0 80 80" class="group-hover:scale-110 transition-transform duration-500 ease-apple">
+                            <circle cx="40" cy="40" r="36" fill="none" stroke="#E5E5EA" stroke-width="8"/>
+                            <path d="M40 20V40L55 50" stroke="#1D1D1F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: Plan Workouts (Interactive Prototype Replacement) -->
+    <section class="py-32 px-6">
+        <div class="max-w-7xl mx-auto text-center reveal mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                <span data-lang="en">Plan Workouts Without Breaking Your Flow</span>
+                <span data-lang="zh">不打斷節奏，輕鬆完成訓練計劃</span>
+            </h2>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                <span data-lang="en">Planning shouldn’t feel like starting from scratch every time. Instantly shape a plan balancing growth and recovery.</span>
+                <span data-lang="zh">安排課表不該每次都像從零開始。快速制定平衡成長與恢復的完美計劃。</span>
+            </p>
+        </div>
+
+        <div class="max-w-6xl mx-auto shadow-2xl reveal">
+            <!-- INJECTED PROTOTYPE HTML -->
+            <div class="presentation-stage">
+                
+                <!-- ANNOTATION HUB (HANDWRITTEN CUES) -->
+                <div class="annotation-hub">
+
+                    <!-- Annotation Screen 1 -->
+                    <div class="annotation-group active" id="anno-1">
+                        <div class="anno-text">
+                            <div class="anno-title">
+                                <span data-lang="en">Tap to Type</span>
+                                <span data-lang="zh">點擊輸入</span>
+                            </div>
+                            <div class="anno-body">
+                                <span data-lang="en">Coach inputs context naturally. No rigid forms or dropdowns required.</span>
+                                <span data-lang="zh">教練可自然輸入情境，無需填寫繁瑣表單。</span>
+                            </div>
+                        </div>
+                        <svg class="anno-arrow" viewBox="0 0 130 100">
+                            <path class="draw-path" d="M 0,0 C 40,40 90,-40 140,-20" marker-end="url(#arrowhead)"/>
+                        </svg>
+                    </div>
+
+                    <!-- Annotation Screen 2 -->
+                    <div class="annotation-group" id="anno-2">
+                        <div class="anno-text">
+                            <div class="anno-title">
+                                <span data-lang="en">AI Extraction</span>
+                                <span data-lang="zh">AI 智慧萃取</span>
+                            </div>
+                            <div class="anno-body">
+                                <span data-lang="en">The model structures raw text into actionable workout blocks instantly.</span>
+                                <span data-lang="zh">模型瞬間將原始文字結構化為可執行的訓練區塊。</span>
+                            </div>
+                        </div>
+                        <svg class="anno-arrow" viewBox="0 0 130 120">
+                            <path class="draw-path" d="M 0,0 C 50,30 90,-110 140,-90" marker-end="url(#arrowhead)"/>
+                        </svg>
+                    </div>
+
+                    <!-- Annotation Screen 3 -->
+                    <div class="annotation-group" id="anno-3">
+                        <div class="anno-text">
+                            <div class="anno-title">
+                                <span data-lang="en">Direct Edit</span>
+                                <span data-lang="zh">直接編輯</span>
+                            </div>
+                            <div class="anno-body">
+                                <span data-lang="en">Tap any metric to adjust. Drag & drop cards to reorder the flow.</span>
+                                <span data-lang="zh">點擊數據即可調整，拖曳卡片即可重新排序流程。</span>
+                            </div>
+                        </div>
+                        <svg class="anno-arrow" viewBox="0 0 130 80">
+                            <path class="draw-path" d="M 0,0 C 40,40 100,-20 140,0" marker-end="url(#arrowhead)"/>
+                        </svg>
+                    </div>
+
+                    <!-- Annotation Screen 4 -->
+                    <div class="annotation-group" id="anno-4">
+                        <div class="anno-text">
+                            <div class="anno-title">
+                                <span data-lang="en">Deliver</span>
+                                <span data-lang="zh">一鍵發送</span>
+                            </div>
+                            <div class="anno-body">
+                                <span data-lang="en">One tap pushes the tailored program directly to the client's app.</span>
+                                <span data-lang="zh">一鍵將專屬課表直接推送到客人的 App 中。</span>
+                            </div>
+                        </div>
+                        <svg class="anno-arrow" viewBox="0 0 130 100">
+                            <path class="draw-path" d="M 0,0 C 50,30 100,-10 140,10" marker-end="url(#arrowhead)"/>
+                        </svg>
+                    </div>
+
+                    <!-- Shared Arrowhead Definition -->
+                    <svg style="width:0; height:0; position:absolute;">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+                                <path d="M 1,1 L 9,5 L 1,9" fill="none" stroke="var(--ink-charcoal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </marker>
+                        </defs>
+                    </svg>
+
+                </div>
+
+                <!-- APP WRAPPER -->
+                <div id="prototype-app">
+                    <!-- DEVICE MOCKUP -->
+                    <div class="device-wrapper">
+                        <div class="screen-container">
+                            <div class="dynamic-island">
+                                <div class="camera-dot"></div>
+                                <div class="camera-dot" style="width: 8px; height: 8px; background: #222;"></div>
+                            </div>
+
+                            <div class="slider-track" id="sliderTrack">
+                                
+                                <!-- SCREEN 1: NATURAL INPUT -->
+                                <div class="prototype-screen active" id="screen1">
+                                    <h1>Logdex AI</h1>
+                                    <p class="subtitle">
+                                        <span data-lang="en">Draft your coaching intent.</span>
+                                        <span data-lang="zh">草擬您的教學意圖。</span>
+                                    </p>
+                                    
+                                    <div class="input-area">
+                                        <div class="textarea-container">
+                                            <textarea id="aiInput" data-lang="en" placeholder="E.g. Client is a 32yo male returning from a shoulder impingement. Needs a 45-min upper body focus. Emphasize mobility and core stability..."></textarea>
+                                            <textarea id="aiInput_zh" data-lang="zh" placeholder="例：客人是一位 32 歲男性，剛從肩膀夾擠症候群復原。需要 45 分鐘的上半身訓練。強調活動度與核心穩定..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <button class="prototype-btn-primary" onclick="generatePlan()">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                                        <span data-lang="en">Generate Plan</span>
+                                        <span data-lang="zh">生成課表</span>
+                                    </button>
+                                </div>
+
+                                <!-- SCREEN 2: AI OUTPUT -->
+                                <div class="prototype-screen" id="screen2">
+                                    <button class="header-action" onclick="goToScreen(0)">
+                                        <span data-lang="en">Back</span>
+                                        <span data-lang="zh">返回</span>
+                                    </button>
+                                    <h1>
+                                        <span data-lang="en">Generated Plan</span>
+                                        <span data-lang="zh">生成的課表</span>
+                                    </h1>
+                                    <p class="subtitle" id="statusText">AI is structuring the workout...</p>
+
+                                    <div id="aiLoadingState">
+                                        <div class="shimmer skeleton-title"></div>
+                                        <div class="shimmer skeleton-card"></div>
+                                        <div class="shimmer skeleton-card"></div>
+                                        <div class="shimmer skeleton-title" style="margin-top: 16px;"></div>
+                                        <div class="shimmer skeleton-card"></div>
+                                    </div>
+
+                                    <div id="aiContentState">
+                                        <div class="section-title">
+                                            <span data-lang="en">Warm-up & Mobility</span>
+                                            <span data-lang="zh">熱身與活動度</span>
+                                        </div>
+                                        <div class="prototype-card exercise-item">
+                                            <div class="ex-details">
+                                                <h3>
+                                                    <span data-lang="en">Scapular Wall Slides</span>
+                                                    <span data-lang="zh">肩胛靠牆滑動</span>
+                                                </h3>
+                                                <p>
+                                                    <span data-lang="en">2 sets • 15 reps • Focus on control</span>
+                                                    <span data-lang="zh">2 組 • 15 下 • 專注控制</span>
+                                                </p>
+                                                <div style="margin-top: 8px;">
+                                                    <span class="prototype-chip"><span data-lang="en">Shoulder</span><span data-lang="zh">肩膀</span></span>
+                                                    <span class="prototype-chip"><span data-lang="en">Rehab</span><span data-lang="zh">復健</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="section-title">
+                                            <span data-lang="en">Main Training (Upper)</span>
+                                            <span data-lang="zh">主訓練 (上半身)</span>
+                                        </div>
+                                        <div class="prototype-card exercise-item">
+                                            <div class="ex-details">
+                                                <h3>
+                                                    <span data-lang="en">Dumbbell Floor Press</span>
+                                                    <span data-lang="zh">啞鈴地板臥推</span>
+                                                </h3>
+                                                <p>
+                                                    <span data-lang="en">3 sets • 10-12 reps • Limit ROM</span>
+                                                    <span data-lang="zh">3 組 • 10-12 下 • 限制活動範圍</span>
+                                                </p>
+                                                <div style="margin-top: 8px;">
+                                                    <span class="prototype-chip"><span data-lang="en">Chest</span><span data-lang="zh">胸肌</span></span>
+                                                    <span class="prototype-chip"><span data-lang="en">Safe Angle</span><span data-lang="zh">安全角度</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="prototype-card exercise-item">
+                                            <div class="ex-details">
+                                                <h3>
+                                                    <span data-lang="en">Face Pulls</span>
+                                                    <span data-lang="zh">滑輪面拉</span>
+                                                </h3>
+                                                <p>
+                                                    <span data-lang="en">3 sets • 15 reps • Light weight</span>
+                                                    <span data-lang="zh">3 組 • 15 下 • 輕重量</span>
+                                                </p>
+                                                <div style="margin-top: 8px;">
+                                                    <span class="prototype-chip"><span data-lang="en">Rear Delt</span><span data-lang="zh">後三角肌</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button class="prototype-btn-primary" id="btnEditPlan" style="display: none;" onclick="goToScreen(2)">
+                                        <span data-lang="en">Review & Fine-Tune</span>
+                                        <span data-lang="zh">審查與微調</span>
+                                    </button>
+                                </div>
+
+                                <!-- SCREEN 3: EDIT PLAN -->
+                                <div class="prototype-screen" id="screen3">
+                                    <button class="header-action" onclick="goToScreen(1)">
+                                        <span data-lang="en">Back</span>
+                                        <span data-lang="zh">返回</span>
+                                    </button>
+                                    <h1>
+                                        <span data-lang="en">Fine-Tune Plan</span>
+                                        <span data-lang="zh">微調課表</span>
+                                    </h1>
+                                    <p class="subtitle">
+                                        <span data-lang="en">Drag to reorder. Tap to edit.</span>
+                                        <span data-lang="zh">拖曳可排序，點擊可編輯。</span>
+                                    </p>
+
+                                    <div class="draggable-list" id="exerciseList">
+                                        <div class="draggable-card" draggable="true">
+                                            <div class="drag-handle"><svg viewBox="0 0 24 24"><path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/></svg></div>
+                                            <div style="flex: 1;">
+                                                <h3 style="font-size: 16px; margin-bottom: 4px;"><span data-lang="en">Scapular Wall Slides</span><span data-lang="zh">肩胛靠牆滑動</span></h3>
+                                                <div class="edit-fields">
+                                                    <input type="text" class="edit-input" value="2 Sets" data-lang="en"><input type="text" class="edit-input" value="2 組" data-lang="zh">
+                                                    <input type="text" class="edit-input" value="15 Reps" data-lang="en"><input type="text" class="edit-input" value="15 下" data-lang="zh">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="draggable-card" draggable="true">
+                                            <div class="drag-handle"><svg viewBox="0 0 24 24"><path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/></svg></div>
+                                            <div style="flex: 1;">
+                                                <h3 style="font-size: 16px; margin-bottom: 4px;"><span data-lang="en">DB Floor Press</span><span data-lang="zh">啞鈴地板臥推</span></h3>
+                                                <div class="edit-fields">
+                                                    <input type="text" class="edit-input" value="3 Sets" data-lang="en"><input type="text" class="edit-input" value="3 組" data-lang="zh">
+                                                    <input type="text" class="edit-input" value="12 Reps" data-lang="en"><input type="text" class="edit-input" value="12 下" data-lang="zh">
+                                                    <input type="text" class="edit-input" value="40 lbs" data-lang="en"><input type="text" class="edit-input" value="40 lbs" data-lang="zh">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="draggable-card" draggable="true">
+                                            <div class="drag-handle"><svg viewBox="0 0 24 24"><path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/></svg></div>
+                                            <div style="flex: 1;">
+                                                <h3 style="font-size: 16px; margin-bottom: 4px;"><span data-lang="en">Face Pulls</span><span data-lang="zh">滑輪面拉</span></h3>
+                                                <div class="edit-fields">
+                                                    <input type="text" class="edit-input" value="3 Sets" data-lang="en"><input type="text" class="edit-input" value="3 組" data-lang="zh">
+                                                    <input type="text" class="edit-input" value="15 Reps" data-lang="en"><input type="text" class="edit-input" value="15 下" data-lang="zh">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 16px; text-align: center;">
+                                        <button style="background: transparent; border: 1px dashed var(--border-subtle); color: var(--accent-blue); width: 100%; padding: 12px; border-radius: 12px; cursor: pointer;">
+                                            <span data-lang="en">+ Add Exercise</span>
+                                            <span data-lang="zh">+ 新增動作</span>
+                                        </button>
+                                    </div>
+
+                                    <button class="prototype-btn-primary" onclick="goToScreen(3)">
+                                        <span data-lang="en">Finalize Plan</span>
+                                        <span data-lang="zh">確認課表</span>
+                                    </button>
+                                </div>
+
+                                <!-- SCREEN 4: SEND TO CLIENT -->
+                                <div class="prototype-screen" id="screen4">
+                                    <button class="header-action" onclick="goToScreen(2)">
+                                        <span data-lang="en">Back</span>
+                                        <span data-lang="zh">返回</span>
+                                    </button>
+                                    <h1>
+                                        <span data-lang="en">Delivery</span>
+                                        <span data-lang="zh">發送</span>
+                                    </h1>
+                                    <p class="subtitle">
+                                        <span data-lang="en">Ready to send to client.</span>
+                                        <span data-lang="zh">已準備好發送給客人。</span>
+                                    </p>
+
+                                    <div class="summary-card">
+                                        <div class="summary-icon">
+                                            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </div>
+                                        <h2>
+                                            <span data-lang="en">Upper Body Recovery</span>
+                                            <span data-lang="zh">上半身復健</span>
+                                        </h2>
+                                        <p style="color: var(--text-secondary); margin-top: 8px;">
+                                            <span data-lang="en">Tailored for shoulder impingement constraints.</span>
+                                            <span data-lang="zh">專為肩膀夾擠限制量身打造。</span>
+                                        </p>
+                                        
+                                        <div class="summary-stats">
+                                            <div class="stat">
+                                                <span class="stat-val">3</span>
+                                                <span class="stat-label"><span data-lang="en">Blocks</span><span data-lang="zh">區塊</span></span>
+                                            </div>
+                                            <div class="stat">
+                                                <span class="stat-val">45m</span>
+                                                <span class="stat-label"><span data-lang="en">Est. Time</span><span data-lang="zh">預估時間</span></span>
+                                            </div>
+                                            <div class="stat">
+                                                <span class="stat-val"><span data-lang="en">Low</span><span data-lang="zh">低</span></span>
+                                                <span class="stat-label"><span data-lang="en">Intensity</span><span data-lang="zh">強度</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button class="prototype-btn-primary" onclick="sendToClient()">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                        <span data-lang="en">Send to Client</span>
+                                        <span data-lang="zh">發送給客人</span>
+                                    </button>
+
+                                    <!-- Success Overlay -->
+                                    <div class="success-overlay" id="successOverlay">
+                                        <div class="check-circle">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        </div>
+                                        <h2 style="margin-top: 24px;">
+                                            <span data-lang="en">Plan Sent!</span>
+                                            <span data-lang="zh">發送成功！</span>
+                                        </h2>
+                                        <p style="color: var(--text-secondary); margin-top: 8px;">
+                                            <span data-lang="en">Client notified via app.</span>
+                                            <span data-lang="zh">已透過 App 通知客人。</span>
+                                        </p>
+                                        <button class="prototype-btn-primary" style="margin-top: 40px; width: auto; background: rgba(255,255,255,0.1);" onclick="resetPrototype()">
+                                            <span data-lang="en">Start New Plan</span>
+                                            <span data-lang="zh">建立新課表</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXTERNAL NAVIGATION -->
+                    <div class="external-nav is-paused">
+                        <div class="nav-pill">
+                            <button class="nav-dot active" onclick="goToScreen(0)" aria-label="Screen 1: Natural Input"></button>
+                            <button class="nav-dot" onclick="goToScreen(1)" aria-label="Screen 2: AI Plan Output"></button>
+                            <button class="nav-dot" onclick="goToScreen(2)" aria-label="Screen 3: Edit Plan"></button>
+                            <button class="nav-dot" onclick="goToScreen(3)" aria-label="Screen 4: Send to Client"></button>
+                        </div>
+                        <button class="pause-btn" onclick="toggleAutoPlay()" aria-label="Pause/Play Auto Transition">
+                            <svg id="playPauseIcon" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+            <!-- END INJECTED PROTOTYPE -->
+        </div>
+    </section>
+
+    <!-- SECTION 4: Communication -->
+    <section class="py-32 bg-slate-900 text-white px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16">
+            <div class="md:w-1/2 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                    <span data-lang="en">Keep Every Client Conversation Connected</span>
+                    <span data-lang="zh">讓每一段客人對話，都保持連貫</span>
+                </h2>
+                <p class="text-xl text-brand-400 font-medium mb-8">
+                    <span data-lang="en">Every message becomes part of the coaching journey.</span>
+                    <span data-lang="zh">每一則訊息，都是教學旅程的一部分。</span>
+                </p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="text-brand-400 mb-2">⚡️</div>
+                        <h4 class="font-bold mb-1">
+                            <span data-lang="en">Reply faster</span>
+                            <span data-lang="zh">回覆更快速</span>
+                        </h4>
+                        <p class="text-sm text-slate-400">
+                            <span data-lang="en">Unified inbox stops the platform switching.</span>
+                            <span data-lang="zh">統一的收件匣，讓你不再需要頻繁切換平台。</span>
+                        </p>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="text-brand-400 mb-2">🧠</div>
+                        <h4 class="font-bold mb-1">
+                            <span data-lang="en">Reuse knowledge</span>
+                            <span data-lang="zh">知識再利用</span>
+                        </h4>
+                        <p class="text-sm text-slate-400">
+                            <span data-lang="en">Save common answers to your library.</span>
+                            <span data-lang="zh">將常見問題的解答儲存至你的專屬資料庫。</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="md:w-1/2 w-full reveal reveal-delay-1">
+                <!-- Abstract Chat UI -->
+                <div class="relative w-full max-w-md mx-auto h-[500px] bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-slate-700 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-slate-600 rounded-full"></div>
+                        <div>
+                            <div class="font-bold text-sm">
+                                <span data-lang="en">Alex (Client)</span>
+                                <span data-lang="zh">Alex (學生)</span>
+                            </div>
+                            <div class="text-xs text-brand-400">
+                                <span data-lang="en">Active Workout</span>
+                                <span data-lang="zh">訓練進行中</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 p-4 space-y-4 overflow-hidden relative">
+                        <div class="w-3/4 bg-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm text-slate-300">
+                            <span data-lang="en">How should I adjust the weight today?</span>
+                            <span data-lang="zh">我今天應該怎麼調整重量？</span>
+                        </div>
+                        
+                        <!-- Log Attachment UI -->
+                        <div class="w-4/5 ml-auto bg-brand-600 p-3 rounded-2xl rounded-tr-sm text-sm">
+                            <span data-lang="en">Stick to 80% 1RM. I attached your previous log for reference.</span>
+                            <span data-lang="zh">維持 80% 1RM。我附上了你上次的記錄給你參考。</span>
+                            <div class="mt-2 bg-black/20 p-2 rounded-lg flex items-center gap-2">
+                                <div class="w-8 h-8 bg-white/20 rounded flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <div class="h-2 w-1/2 bg-white/50 rounded mb-1"></div>
+                                    <div class="h-2 w-1/3 bg-white/30 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gradient fade for realism -->
+                        <div class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-slate-800 to-transparent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 5: Progress -->
+    <section class="py-32 px-6">
+        <div class="max-w-7xl mx-auto text-center reveal mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                <span data-lang="en">Turn Progress Into Something Clients Can See</span>
+                <span data-lang="zh">把進步，變成客人看得見的東西</span>
+            </h2>
+            <p class="text-xl text-slate-900 font-medium mb-8">
+                <span data-lang="en">Progress isn’t just tracked—it’s understood.</span>
+                <span data-lang="zh">進步不只是被記錄，更是被深刻理解。</span>
+            </p>
+        </div>
+
+        <!-- Horizontal Scroll Cards -->
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white rounded-3xl p-8 shadow-xl border border-slate-100 reveal">
+                <div class="h-40 bg-slate-50 rounded-2xl mb-6 relative overflow-hidden flex items-center justify-center border border-slate-200">
+                    <!-- Before/After Mock -->
+                    <div class="w-1/2 h-full bg-slate-200 border-r border-white"></div>
+                    <div class="w-1/2 h-full bg-slate-300"></div>
+                    <div class="absolute bg-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                        <span data-lang="en">Timeline</span>
+                        <span data-lang="zh">時間線</span>
+                    </div>
+                </div>
+                <h4 class="text-xl font-bold mb-2">
+                    <span data-lang="en">Photo Tracking</span>
+                    <span data-lang="zh">照片追蹤</span>
+                </h4>
+                <p class="text-slate-500">
+                    <span data-lang="en">Visual proof of the journey, aligned on a clean timeline.</span>
+                    <span data-lang="zh">用清晰的時間線，記錄最真實的改變。</span>
+                </p>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-8 shadow-xl border border-slate-100 reveal reveal-delay-1">
+                <div class="h-40 bg-slate-50 rounded-2xl mb-6 relative overflow-hidden flex items-end justify-center gap-2 p-4 border border-slate-200">
+                    <!-- Chart Mock -->
+                    <div class="w-8 bg-brand-200 rounded-t-md h-1/3"></div>
+                    <div class="w-8 bg-brand-300 rounded-t-md h-1/2"></div>
+                    <div class="w-8 bg-brand-400 rounded-t-md h-3/4"></div>
+                    <div class="w-8 bg-brand-600 rounded-t-md h-full"></div>
+                </div>
+                <h4 class="text-xl font-bold mb-2">
+                    <span data-lang="en">Performance Tracking</span>
+                    <span data-lang="zh">表現追蹤</span>
+                </h4>
+                <p class="text-slate-500">
+                    <span data-lang="en">Turn raw numbers into beautiful, understandable growth charts.</span>
+                    <span data-lang="zh">將冰冷的數字轉化為清晰易懂的成長圖表。</span>
+                </p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-8 shadow-xl border border-slate-100 reveal reveal-delay-2">
+                <div class="h-40 bg-slate-50 rounded-2xl mb-6 relative overflow-hidden flex items-center justify-center border border-slate-200 gap-1 p-6 flex-wrap content-center">
+                    <!-- Streak Mock Fixed rendering to prevent hydration issues -->
+                    <div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div>
+                    <div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div>
+                    <div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div>
+                    <div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-slate-200"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div><div class="w-4 h-4 rounded-sm bg-brand-500"></div>
+                </div>
+                <h4 class="text-xl font-bold mb-2">
+                    <span data-lang="en">Consistency Tracking</span>
+                    <span data-lang="zh">穩定度追蹤</span>
+                </h4>
+                <p class="text-slate-500">
+                    <span data-lang="en">Celebrate the streaks and maintain momentum over time.</span>
+                    <span data-lang="zh">慶祝每一次連續達標，保持長期的動力。</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 6: Feature Blocks (WHAT) -->
+    <section class="py-24 bg-slate-50 border-t border-slate-200 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <!-- 1 -->
+                <div class="reveal">
+                    <h2 class="text-2xl font-bold mb-2">
+                        <span data-lang="en">A Better Way to Manage Workout Plans</span>
+                        <span data-lang="zh">更聰明的課表管理方式</span>
+                    </h2>
+                    <p class="text-brand-600 font-medium mb-4">
+                        <span data-lang="en">Less managing, more coaching</span>
+                        <span data-lang="zh">減少管理時間，專注於教學</span>
+                    </p>
+                    <div class="w-full h-48 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center text-slate-400 text-sm">
+                        <span data-lang="en">Edit → Send → Client view</span>
+                        <span data-lang="zh">編輯 → 發送 → 學生檢視</span>
+                    </div>
+                </div>
+                <!-- 2 -->
+                <div class="reveal reveal-delay-1">
+                    <h2 class="text-2xl font-bold mb-2">
+                        <span data-lang="en">A Simpler Way to Talk to Clients</span>
+                        <span data-lang="zh">更簡單的客戶溝通管道</span>
+                    </h2>
+                    <p class="text-brand-600 font-medium mb-4">
+                        <span data-lang="en">Always know client status</span>
+                        <span data-lang="zh">隨時掌握學生狀態</span>
+                    </p>
+                    <div class="w-full h-48 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center text-slate-400 text-sm">
+                        <span data-lang="en">Chat → Log → Insight</span>
+                        <span data-lang="zh">對話 → 記錄 → 洞察</span>
+                    </div>
+                </div>
+                <!-- 3 -->
+                <div class="reveal reveal-delay-2">
+                    <h2 class="text-2xl font-bold mb-2">
+                        <span data-lang="en">A Clear Way to Show Real Results</span>
+                        <span data-lang="zh">更清晰的成效展示方法</span>
+                    </h2>
+                    <p class="text-brand-600 font-medium mb-4">
+                        <span data-lang="en">Prove impact</span>
+                        <span data-lang="zh">用數據證明成效</span>
+                    </p>
+                    <div class="w-full h-48 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-center text-slate-400 text-sm">
+                        <span data-lang="en">Before/After + Data</span>
+                        <span data-lang="zh">對比照 + 數據分析</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA SECTION -->
+    <section class="py-32 px-6 bg-slate-900 text-center">
+        <div class="max-w-4xl mx-auto reveal">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+                <span data-lang="en">You don’t need more tools.<br><span class="text-slate-400">You need a system that works the way you coach.</span></span>
+                <span data-lang="zh">你不需要更多工具。<br><span class="text-slate-400">你需要一個真正符合你教學方式的系統。</span></span>
+            </h2>
+            <button class="bg-white text-slate-900 hover:bg-slate-100 px-10 py-5 mt-8 rounded-full text-xl font-bold transition-all transform hover:scale-105 btn-cta">
+                <span data-lang="en">Try Logdex</span>
+                <span data-lang="zh">免費試用 Logdex</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 bg-slate-950 text-slate-500 text-center text-sm">
+        <div class="max-w-7xl mx-auto">
+            © 2026 Logdex. <span data-lang="en">Designed for the modern coach.</span><span data-lang="zh">為現代教練量身打造。</span>
+        </div>
+    </footer>
+
+    <!-- Interactive Logic (Global Space for Prototype Event Handlers) -->
+    <script>
+        // --- PROTOTYPE GLOBAL STATE ---
+        window.currentScreen = 0;
+        window.isPlaying = false;
+        window.autoPlayTimeout = null;
+        window.isHovered = false;
+        
+        window.getScreenDuration = function(index) {
+            return index === 1 ? 1500 : 3000;
+        };
+
+        window.goToScreen = function(index) {
+            window.currentScreen = index;
+            
+            const screens = document.querySelectorAll('.prototype-screen');
+            screens.forEach((screen, i) => {
+                if (i === index) screen.classList.add('active');
+                else screen.classList.remove('active');
+            });
+
+            const externalNavContainer = document.querySelector('.external-nav');
+            if(externalNavContainer) {
+                externalNavContainer.style.setProperty('--play-duration', `${window.getScreenDuration(index)}ms`);
+            }
+
+            const navDots = document.querySelectorAll('.nav-dot');
+            navDots.forEach((dot, i) => {
+                if (i === index) {
+                    dot.classList.remove('active');
+                    void dot.offsetWidth; // Trigger reflow
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+
+            const annoGroups = document.querySelectorAll('.annotation-group');
+            annoGroups.forEach((group, i) => {
+                if (i === index) group.classList.add('active');
+                else group.classList.remove('active');
+            });
+
+            if (window.isPlaying) {
+                clearTimeout(window.autoPlayTimeout);
+                if (!window.isHovered) window.startAutoPlayTimer();
+            }
+        };
+
+        window.startAutoPlayTimer = function() {
+            const duration = window.getScreenDuration(window.currentScreen);
+            window.autoPlayTimeout = setTimeout(() => {
+                let nextScreen = (window.currentScreen + 1) % 4;
+                window.goToScreen(nextScreen);
+            }, duration);
+        };
+
+        window.toggleAutoPlay = function() {
+            const navContainer = document.querySelector('.external-nav');
+            const icon = document.getElementById('playPauseIcon');
+            
+            if (window.isPlaying) {
+                window.isPlaying = false;
+                clearTimeout(window.autoPlayTimeout);
+                navContainer.classList.remove('is-playing');
+                navContainer.classList.add('is-paused');
+                icon.innerHTML = `<path d="M8 5v14l11-7z"/>`; 
+            } else {
+                window.isPlaying = true;
+                navContainer.classList.remove('is-paused');
+                navContainer.classList.add('is-playing');
+                icon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`; 
+                window.goToScreen(window.currentScreen);
+            }
+        };
+
+        window.generatePlan = function() {
+            // Check which input is active based on language
+            const currentLang = document.documentElement.getAttribute('lang') || 'en';
+            const input = document.getElementById(currentLang === 'zh' ? 'aiInput_zh' : 'aiInput');
+            const statusText = document.getElementById('statusText');
+            
+            if(!input.value) {
+                if(currentLang === 'zh') input.value = "例：客人是一位 32 歲男性，剛從肩膀夾擠症候群復原。需要 45 分鐘的上半身訓練。強調活動度與核心穩定...";
+                else input.value = "32yo male, returning from shoulder impingement. Needs upper body focus with mobility.";
+            }
+            
+            window.goToScreen(1);
+            
+            document.getElementById('aiLoadingState').style.display = 'flex';
+            document.getElementById('aiContentState').style.display = 'none';
+            document.getElementById('aiContentState').style.opacity = '0';
+            document.getElementById('btnEditPlan').style.display = 'none';
+            
+            // i18n text setting logic for dynamic text
+            statusText.innerHTML = currentLang === 'zh' ? 'AI 正在結構化訓練內容...' : 'AI is structuring the workout...';
+
+            setTimeout(() => {
+                document.getElementById('aiLoadingState').style.display = 'none';
+                statusText.innerHTML = currentLang === 'zh' ? '課表生成成功。' : 'Plan generated successfully.';
+                
+                const content = document.getElementById('aiContentState');
+                content.style.display = 'block';
+                void content.offsetWidth; 
+                content.style.opacity = '1';
+
+                document.getElementById('btnEditPlan').style.display = 'flex';
+            }, 2000);
+        };
+
+        window.sendToClient = function() {
+            document.getElementById('successOverlay').classList.add('active');
+        };
+
+        window.resetPrototype = function() {
+            document.getElementById('successOverlay').classList.remove('active');
+            document.getElementById('aiInput').value = '';
+            document.getElementById('aiInput_zh').value = '';
+            window.goToScreen(0);
+        };
+
+        // --- DOM CONTENT LOADED (Main Site Logic) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 0. Internationalization (i18n) Logic ---
+            const langToggleBtn = document.getElementById('lang-toggle');
+            const htmlElement = document.documentElement;
+            
+            const savedLang = localStorage.getItem('logdex_lang');
+            const browserLang = navigator.language || navigator.userLanguage;
+            const defaultLang = savedLang ? savedLang : (browserLang.startsWith('zh') ? 'zh' : 'en');
+            
+            htmlElement.setAttribute('lang', defaultLang);
+
+            langToggleBtn.addEventListener('click', () => {
+                const currentLang = htmlElement.getAttribute('lang');
+                const nextLang = currentLang === 'en' ? 'zh' : 'en';
+                
+                htmlElement.setAttribute('lang', nextLang);
+                localStorage.setItem('logdex_lang', nextLang);
+            });
+
+
+            // --- 1. Scroll Reveal Logic (Intersection Observer) ---
+            const revealElements = document.querySelectorAll('.reveal');
+            const revealOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+            
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, revealOptions);
+            
+            revealElements.forEach(el => revealObserver.observe(el));
+
+            // --- 1.5 Bento Grid Reveal Logic (Staggered) ---
+            const bentoObserverOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const bentoObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('is-visible');
+                        }, index * 75); 
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, bentoObserverOptions);
+
+            const bentoCards = document.querySelectorAll('.reveal-card');
+            bentoCards.forEach(card => bentoObserver.observe(card));
+
+            // --- 2. Prototype Interaction Listeners ---
+            const deviceWrapperElement = document.querySelector('.device-wrapper');
+            const externalNavContainer = document.querySelector('.external-nav');
+
+            if(deviceWrapperElement && externalNavContainer) {
+                deviceWrapperElement.addEventListener('mouseenter', () => {
+                    window.isHovered = true;
+                    if (window.isPlaying) {
+                        clearTimeout(window.autoPlayTimeout);
+                        externalNavContainer.classList.add('is-hover-paused'); 
+                    }
+                });
+
+                deviceWrapperElement.addEventListener('mouseleave', () => {
+                    window.isHovered = false;
+                    if (window.isPlaying) {
+                        externalNavContainer.classList.remove('is-hover-paused');
+                        window.goToScreen(window.currentScreen);
+                    }
+                });
+            }
+
+            // --- 3. Drag and Drop Logic (Screen 3) ---
+            const list = document.getElementById('exerciseList');
+            let draggedItem = null;
+
+            if(list) {
+                list.addEventListener('dragstart', (e) => {
+                    draggedItem = e.target.closest('.draggable-card');
+                    if(draggedItem) {
+                        setTimeout(() => draggedItem.classList.add('dragging'), 0);
+                    }
+                });
+
+                list.addEventListener('dragend', (e) => {
+                    if(draggedItem) {
+                        draggedItem.classList.remove('dragging');
+                        draggedItem = null;
+                    }
+                });
+
+                list.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(list, e.clientY);
+                    const currentDraggable = document.querySelector('.dragging');
+                    if(currentDraggable) {
+                        if (afterElement == null) {
+                            list.appendChild(currentDraggable);
+                        } else {
+                            list.insertBefore(currentDraggable, afterElement);
+                        }
+                    }
+                });
+
+                function getDragAfterElement(container, y) {
+                    const draggableElements = [...container.querySelectorAll('.draggable-card:not(.dragging)')];
+                    return draggableElements.reduce((closest, child) => {
+                        const box = child.getBoundingClientRect();
+                        const offset = y - box.top - box.height / 2;
+                        if (offset < 0 && offset > closest.offset) {
+                            return { offset: offset, element: child };
+                        } else {
+                            return closest;
+                        }
+                    }, { offset: Number.NEGATIVE_INFINITY }).element;
+                }
+            }
+
+            // --- 4. CTA Buttons placeholder action ---
+            document.querySelectorAll('.btn-cta').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            });
+
+            // Initialize Prototype
+            window.goToScreen(0);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
